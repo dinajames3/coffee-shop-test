@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useParams, Link } from 'react-router-dom';
+import { supabase } from '../../supabaseClient';
 
 const statusMap = {
     'Pending': { icon: '⏳', label: 'Order Received', desc: 'Our kitchen is reviewing your order.' },
@@ -18,9 +19,30 @@ const OrderTracking = () => {
     useEffect(() => {
         const fetchStatus = async () => {
             try {
-                const res = await fetch(`http://localhost/bella-notte-api/orders.php?id=${id}`);
-                const data = await res.json();
-                setOrder(data);
+                const { data, error } = await supabase
+                    .from('orders')
+                    .select(`
+                        *,
+                        order_items (
+                            *,
+                            products (name)
+                        )
+                    `)
+                    .eq('id', id)
+                    .single();
+
+                if (error) throw error;
+
+                // Flatten the items for easy display
+                const formattedOrder = {
+                    ...data,
+                    items: data.order_items.map(oi => ({
+                        name: oi.products.name,
+                        quantity: oi.quantity
+                    }))
+                };
+
+                setOrder(formattedOrder);
                 setLoading(false);
             } catch (e) {
                 console.error("Failed to fetch order status", e);
@@ -28,8 +50,23 @@ const OrderTracking = () => {
         };
 
         fetchStatus();
-        const interval = setInterval(fetchStatus, 5000); // Poll every 5 seconds
-        return () => clearInterval(interval);
+
+        // Subscription for real-time updates!
+        const subscription = supabase
+            .channel(`order-${id}`)
+            .on('postgres_changes', {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'orders',
+                filter: `id=eq.${id}`
+            }, (payload) => {
+                fetchStatus(); // Refresh data on change
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(subscription);
+        };
     }, [id]);
 
     if (loading) return <div className="container mx-auto px-6 py-20 text-center text-white/40">Searching for your order...</div>;
@@ -103,3 +140,4 @@ const OrderTracking = () => {
 };
 
 export default OrderTracking;
+
