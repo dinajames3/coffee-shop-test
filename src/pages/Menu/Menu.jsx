@@ -1,19 +1,14 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-
-const menuData = [
-	{ name: 'Risotto alla Milanese', category: 'Main', desc: 'Creamy saffron risotto with parmesan.' },
-	{ name: 'Tagliatelle al Tartufo', category: 'Main', desc: 'Fresh pasta with truffle cream sauce.' },
-	{ name: 'Bruschetta', category: 'Starter', desc: 'Grilled bread with tomatoes, garlic, and basil.' },
-	{ name: 'Caprese Salad', category: 'Starter', desc: 'Tomatoes, mozzarella, basil, olive oil.' },
-	{ name: 'Tiramisu', category: 'Dessert', desc: 'Classic Italian dessert with espresso and mascarpone.' },
-	{ name: 'Panna Cotta', category: 'Dessert', desc: 'Silky vanilla cream with berry coulis.' },
-];
-
-const categories = ['All', ...Array.from(new Set(menuData.map(d => d.category)))];
+import { useOrder } from '../../context/OrderContext';
 
 const Menu = () => {
+	const { products } = useOrder();
 	const [filter, setFilter] = useState('All');
+
+	const menuData = products;
+	const categories = ['All', ...Array.from(new Set(menuData.map(d => d.category)))];
+
 	const filteredMenu = filter === 'All' ? menuData : menuData.filter(d => d.category === filter);
 
 	return (

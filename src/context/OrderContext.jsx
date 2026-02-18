@@ -20,16 +20,21 @@ export const OrderProvider = ({ children }) => {
     }, [user]);
 
     const fetchProducts = async () => {
+        console.log("Fetching products from Supabase...");
         try {
             const { data, error } = await supabase
                 .from('products')
                 .select('*')
                 .order('name', { ascending: true });
 
-            if (error) throw error;
+            if (error) {
+                console.error("Supabase error fetching products:", error);
+                throw error;
+            }
+            console.log("Products successfully fetched:", data);
             setProducts(data);
         } catch (e) {
-            console.error("Failed to fetch products", e);
+            console.error("Catch error fetching products:", e);
         }
     };
 
